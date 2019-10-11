@@ -1,12 +1,7 @@
 #include "GunMod.h"
+#include "Shared.h"
 
 std::vector<GunInfo> gunInfoList;
-
-namespace gunStates {
-	bool NoRecoil = false;
-	bool NoSpread = false;
-	bool damageMult = false;
-}
 
 void FixGuns() {
 	for (GunInfo& gun : gunInfoList) {
@@ -23,7 +18,8 @@ GunInfo GetGun(GunInfo gun) { // TODO: remove guns from gunlist when there are >
 	for (GunInfo gunInfo : gunInfoList) {
 		if (gunInfo.gunPtr == gun.gunPtr) return gunInfo;
 	}
-	return GunInfo(NULL, NULL, NULL, NULL, NULL);
+	//return GunInfo(NULL, NULL, NULL, NULL, NULL);
+	return GunInfo(NULL, NULL, NULL, NULL);
 }
 
 GunInfo GetValidGun(GunInfo gun) {
@@ -42,7 +38,8 @@ GunInfo GetBulletInfo(GunInfo gun) {
 	for (GunInfo gunInfo : gunInfoList) {
 		if (gunInfo.bulletPtr == gun.bulletPtr) return gunInfo;
 	}
-	return GunInfo(NULL, NULL, NULL, NULL, NULL);
+	//return GunInfo(NULL, NULL, NULL, NULL, NULL);
+	return GunInfo(NULL, NULL, NULL, NULL);
 }
 
 GunInfo GetValidBulletInfo(GunInfo gun) {
@@ -60,20 +57,18 @@ GunInfo GetValidBulletInfo(GunInfo gun) {
 void PrintGunList() {
 	std::cout << "Gun List:" << std::endl;
 	for (GunInfo gun : gunInfoList) {
-		std::cout << "    - Recoil: " << gun.recoil << std::endl << "      Spread: " << gun.spread << std::endl << "Bullets/Shot: " << gun.bulletsPerShot << std::endl << std::endl;
+		std::cout << "      Spread: " << gun.spread << std::endl << "Bullets/Shot: " << gun.bulletsPerShot << std::endl << std::endl;
 	}
 }
 
 GunInfo CurrentGun() {
 	FixGuns();
-	return GunInfo(Offsets::localGun(), Offsets::damageMult(), Offsets::getRecoil(), Offsets::getSpread(), Read<unsigned int>(Offsets::damageMult()));
+	return GunInfo(Offsets::localGun(), Offsets::damageMult(), Offsets::getSpread(), Read<unsigned int>(Offsets::damageMult()));
 }
 
+/*
 void NoRecoil(bool active, GunInfo currentGun) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	gunStates::NoRecoil = active;
 
 	intptr_t recoilPtr = Offsets::localGun() + offset_recoil;
 
@@ -81,12 +76,10 @@ void NoRecoil(bool active, GunInfo currentGun) {
 
 	Write<float>(recoilPtr, (active ? 0.002F : currentGun.recoil));
 }
+*/
 
 void NoSpread(bool active, GunInfo currentGun) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	gunStates::NoSpread = active;
 
 	intptr_t spreadPtr = Offsets::localGun() + offset_spread;
 
@@ -96,11 +89,9 @@ void NoSpread(bool active, GunInfo currentGun) {
 }
 
 void NoRecoil(bool active) {
-	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
+	//if (!Offsets::isInGame()) return;
 
-	gunStates::NoRecoil = active;
-
+	/*
 	intptr_t recoilPtr = Offsets::localGun() + offset_recoil;
 	GunInfo currentGun = CurrentGun();
 	currentGun = GetValidGun(currentGun);
@@ -108,13 +99,17 @@ void NoRecoil(bool active) {
 	//PrintGunList();
 
 	Write<float>(recoilPtr, (active ? 0.002F : currentGun.recoil));
+	*/
+
+	if (change_protection(currentPID(), Offsets::base() + 0x1298380, PAGE_EXECUTE_READWRITE, 4) == 0) { // Recoil Patch
+		Write<uint8_t>(Offsets::base() + 0x1298380 + 0x02, !active);
+		//std::cout << "Original byte (hex): " << std::hex << original << std::endl;
+	}
+	change_protection(currentPID(), Offsets::base() + 0x1298380, PAGE_EXECUTE_READ, 4);
 }
 
 void NoSpread(bool active) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	gunStates::NoSpread = active;
 
 	intptr_t spreadPtr = Offsets::localGun() + offset_spread;
 	GunInfo currentGun = CurrentGun();
@@ -131,9 +126,6 @@ void SetDamage(intptr_t damagePtr, unsigned int damage) {
 
 void DamageMultiplier(bool active, GunInfo currentGun) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	gunStates::damageMult = active;
 
 	intptr_t damagePtr = Offsets::damageMult();
 
@@ -142,9 +134,6 @@ void DamageMultiplier(bool active, GunInfo currentGun) {
 
 void DamageMultiplier(bool active) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	gunStates::damageMult = active;
 
 	intptr_t damagePtr = Offsets::damageMult();
 	GunInfo currentGun = CurrentGun();
@@ -170,31 +159,31 @@ void MultSetThisRound(GunInfo gun, bool wasSet) {
 }
 
 void GunModWatcher() {
-	MemVars::PID = Offsets::currentPID();
 	bool listCleared = false;
 	while (true) {
 		//std::cout << "Watcher running" << std::endl;
 		Sleep(500);
 		if (Offsets::isInGame()) {
+			Sleep(1000);
 			listCleared = false;
 			GunInfo currentGun = CurrentGun();
 			GunInfo currentInfo = GetValidGun(currentGun);
 			GunInfo currentMult = GetValidBulletInfo(currentGun);
 			if (!currentInfo.setThisRound) {
-				std::cout << "Set Recoil/Spread" << std::endl;
+				//std::cout << "Set Recoil/Spread" << std::endl;
 				SetThisRound(currentInfo, true);
-				NoRecoil(gunStates::NoRecoil, currentInfo);
-				NoSpread(gunStates::NoSpread, currentInfo);
+				//NoRecoil(CS::ID(NoRecoil_ID), currentInfo);
+				NoSpread(CS::ID(NoSpread_ID), currentInfo);
 			}
 			if (!currentMult.multSetThisRound) {
-				std::cout << "Set Damage Mult" << std::endl;
+				//std::cout << "Set Damage Mult" << std::endl;
 				MultSetThisRound(currentMult, true);
-				DamageMultiplier(gunStates::damageMult, currentMult);
+				DamageMultiplier(CS::ID(DamageMult_ID), currentMult);
 			}
 		}
 		else if (!listCleared) {
 			listCleared = true;
-			std::cout << "Cleared set list" << std::endl;
+			//std::cout << "Cleared set list" << std::endl;
 			for (GunInfo& gun : gunInfoList) {
 				SetThisRound(gun, false);
 				MultSetThisRound(gun, false);

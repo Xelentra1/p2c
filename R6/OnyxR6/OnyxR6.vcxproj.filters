@@ -33,8 +33,23 @@
     <ClInclude Include="ESP.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shared.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsoleUI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Vectors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PlayerMod.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +69,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PlayerMod.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shared.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Misc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConsoleUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

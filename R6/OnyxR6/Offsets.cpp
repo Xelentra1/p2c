@@ -1,10 +1,49 @@
 #include "Offsets.h"
 
+bool patch_terminate()
+{
+	HMODULE module = GetModuleHandleA("kernelbase.dll");
+
+	if (!module)
+		return false;
+
+	uint64_t r6_module = GetModuleBaseAddr("kernelbase.dll");
+
+	if (!r6_module)
+		return false;
+
+	uint64_t api = reinterpret_cast<uint64_t>(GetProcAddress(module, ("TerminateProcess"))) - reinterpret_cast<uint64_t>(module) + r6_module;
+
+	if (change_protection(currentPID(), api, PAGE_EXECUTE_READWRITE, 0x64) == 0)
+	{
+		uint8_t ret_stub[] = { 0xC3, 0x90, 0x90, 0x90 };
+
+		WriteVirtualMemoryRaw(api, reinterpret_cast<uintptr_t>(ret_stub), sizeof(ret_stub));
+		change_protection(currentPID(), api, PAGE_EXECUTE_READ, 0x64);
+	}
+
+	/*
+	if (change_protection(currentPID(), Offsets::base() + 0x1298380, PAGE_EXECUTE_READWRITE, 4) == 0) { // Recoil Patch
+		original = Read<uint8_t>(Offsets::base() + 0x1298380 + 0x02);
+		Write<uint8_t>(Offsets::base() + 0x1298380 + 0x02, 0x00);
+		std::cout << "Original byte (hex): " << std::hex << original << std::endl;
+	}
+	change_protection(currentPID(), Offsets::base() + 0x1298380, PAGE_EXECUTE_READ, 4);
+	*/
+
+	return true;
+}
+
 namespace Offsets {
 	bool _hasInit = false;
 
 	bool hasInit() {
 		return _hasInit;
+	}
+
+	void unInit() {
+		_hasInit = false;
+		unsetPID();
 	}
 
 	uintptr_t baseAddress = NULL;
@@ -66,7 +105,7 @@ namespace Offsets {
 	}
 
 	float getRecoil() {
-		return Read<float>(localGun() + offset_recoil);
+		return Read<float>(localGun() + offset_recoil); // offset_recoil
 	}
 
 	float getSpread() {
@@ -83,19 +122,12 @@ namespace Offsets {
 		return false;
 	}
 
-	HANDLE currentHandle() {
-		return MemVars::processHandle;
-	}
-
-	std::uint32_t currentPID() {
-		return MemVars::PID;
-	}
 
 	void init() {
 		if (!_hasInit) {
-			MemVars::PID = GetProcessID("RainbowSix.exe");
+			 setPID(GetProcessID("RainbowSix.exe"));
 			//std::cout << "PROCESS ID: " << PID << std::endl;
-			if (MemVars::PID != NULL) {
+			if (currentPID() != NULL) {
 
 				//MemVars::processHandle = OpenProcess(PROCESS_ALL_ACCESS, NULL, MemVars::PID);
 				baseAddress = GetModuleBaseAddr("RainbowSix.exe");
@@ -106,6 +138,7 @@ namespace Offsets {
 				networkManager = Read<uintptr_t>(baseAddress + offset_network_manager);
 				profileManager = Read<uintptr_t>(baseAddress + offset_profile_manager);
 				localplayer = ReadChain(profileManager, std::vector<uintptr_t>{ offset_localplayer });
+				patch_terminate();
 				_hasInit = true;
 			}   //std::cout << "Test recoil value: " << Read<double>(gunBase()) << std::endl;
 		}

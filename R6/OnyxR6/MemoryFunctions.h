@@ -5,10 +5,17 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include "Shared.h"
 
-namespace MemVars {
-	static HANDLE processHandle = NULL;
-	static std::uint32_t PID = NULL;
+#ifdef _AMD64_
+#define _PTR_MAX_VALUE ( 0x000F000000000000 )
+#else 
+#define _PTR_MAX_VALUE ( 0xFFE00000 )
+#endif
+
+inline bool _VALID(UINT_PTR Ptr)
+{
+	return (Ptr >= 0x10000) && (Ptr < _PTR_MAX_VALUE);
 }
 
 typedef struct _COPY_MEMORY {
@@ -27,6 +34,9 @@ typedef struct _COPY_MEMORY {
 	BOOLEAN WriteString;
 	const char* moduleName;
 	ULONG pid_ofSource;
+	BOOLEAN change_protection;
+	ULONG protection;
+	ULONG protection_old;
 }COPY_MEMORY;
 
 
@@ -64,7 +74,9 @@ static std::uint32_t GetProcessID(std::string process_name) {
 template<typename ... A>
 static uint64_t call_hook(const A ... arguments)
 {
-	void* control_function = GetProcAddress(LoadLibrary("win32u.dll"), "NtOpenCompositionSurfaceSectionInfo");
+	// NEW NtFlipObjectConsumerPostMessage
+	// OLD NtOpenCompositionSurfaceSectionInfo
+	void* control_function = GetProcAddress(LoadLibrary("win32u.dll"), "NtFlipObjectConsumerPostMessage");
 
 	if (!control_function) {
 		//std::cout << "[-]GetProcAddress returned null function not found." << std::endl;
@@ -84,8 +96,13 @@ static uint64_t call_hook(const A ... arguments)
 
 static ULONG64 GetModuleBaseAddr(const char* moduleName) {
 
+	if (currentPID() == NULL) {
+		std::cout << "PID NULL" << std::endl;
+		return NULL;
+	}
+
 	COPY_MEMORY m = { 0 };
-	m.pid = MemVars::PID;
+	m.pid = currentPID();
 	m.ReqBase = TRUE;
 	m.ClearPIDCache = FALSE;
 	m.Read = FALSE;
@@ -101,18 +118,49 @@ static ULONG64 GetModuleBaseAddr(const char* moduleName) {
 }
 
 
+static ULONG64 change_protection(uint64_t pid, uint64_t address, uint32_t page_protection, std::size_t size)
+{
+	if (currentPID() == NULL) {
+		std::cout << "PID NULL" << std::endl;
+		return NULL;
+	}
+
+	COPY_MEMORY m = { 0 };
+	m.pid = currentPID();
+	m.address = address;
+	m.protection = page_protection;
+	m.size = size;
+	m.change_protection = TRUE;
+
+	m.ReqBase = FALSE;
+	m.ClearPIDCache = FALSE;
+	m.Read = FALSE;
+	m.ReadString = FALSE;
+	m.write = FALSE;
+	m.WriteString = FALSE;
+
+	return call_hook(&m);
+}
+
+
 template <class T>
 static T Read(UINT_PTR ReadAddress) {
 
-	if (MemVars::PID == 0) {
+	if (currentPID() == NULL) {
 		std::cout << "PID NULL" << std::endl;
 		exit(905);
 	}
+	/*
+	if (!_VALID(ReadAddress)) {
+		std::cout << "Tried to read from invalid address: " << std::hex << ReadAddress;
+		return *(T*)NULL;
+	}
+	*/
 
 	T response{};
 
 	COPY_MEMORY m;
-	m.pid = MemVars::PID;
+	m.pid = currentPID();
 	m.size = sizeof(T);
 	m.address = ReadAddress;
 	m.Read = TRUE;
@@ -138,9 +186,20 @@ static bool Write(UINT_PTR WriteAddress, const S& value)
 }
 static bool WriteVirtualMemoryRaw(UINT_PTR WriteAddress, UINT_PTR SourceAddress, SIZE_T WriteSize)
 {
+	if (currentPID() == NULL) {
+		std::cout << "PID NULL" << std::endl;
+		return false;
+	}
+	/*
+	if (!_VALID(WriteAddress)) {
+		std::cout << "Tried to write to invalid address: " << std::hex << WriteAddress;
+		return false;
+	}
+	*/
+
 	COPY_MEMORY m;
 	m.address = WriteAddress;
-	m.pid = MemVars::PID;
+	m.pid = currentPID();
 	m.pid_ofSource = GetCurrentProcessId();
 	m.write = TRUE;
 	m.ClearPIDCache = FALSE;
@@ -154,16 +213,6 @@ static bool WriteVirtualMemoryRaw(UINT_PTR WriteAddress, UINT_PTR SourceAddress,
 	call_hook(&m);
 
 	return true;
-}
-
-bool WriteVirtualMemoryRaw_UNSAFE_ONLY_FOR_DEV(HANDLE procHandle, UINT_PTR addrToWrite, SIZE_T writeSize);
-
-template<typename S>
-static bool Write_UNSAFE_ONLY_FOR_DEV(uintptr_t WriteAddress, const S& value) {
-	return WriteVirtualMemoryRaw_UNSAFE_ONLY_FOR_DEV(MemVars::processHandle, &value, sizeof(S));
-}
-static bool WriteVirtualMemoryRaw_UNSAFE_ONLY_FOR_DEV(HANDLE procHandle, uintptr_t addrToWrite, SIZE_T writeSize) {
-	return WriteProcessMemory(procHandle, (BYTE*)addrToWrite, &addrToWrite, writeSize, nullptr);
 }
 
 static BOOLEAN ClearPIDCacheTable() {
@@ -184,9 +233,18 @@ static BOOLEAN ClearPIDCacheTable() {
 
 static void ReadString(UINT_PTR String_address, void* buffer, SIZE_T size) {
 
+	if (currentPID() == NULL) {
+		std::cout << "PID NULL" << std::endl;
+		return;
+	}
+
+	if (!_VALID(String_address)) {
+		std::cout << "Tried to read string from invalid address: " << std::hex << String_address;
+		return;
+	}
 
 	COPY_MEMORY m;
-	m.pid = MemVars::PID;
+	m.pid = currentPID();
 	m.ReadString = TRUE;
 	m.Read = FALSE;
 	m.ClearPIDCache = FALSE;
@@ -202,8 +260,19 @@ static void ReadString(UINT_PTR String_address, void* buffer, SIZE_T size) {
 
 
 static void WriteString(UINT_PTR String_address, void* buffer, SIZE_T size) {
+
+	if (currentPID() == NULL) {
+		std::cout << "PID NULL" << std::endl;
+		return;
+	}
+
+	if (!_VALID(String_address)) {
+		std::cout << "Tried to write string to invalid address: " << std::hex << String_address;
+		return;
+	}
+
 	COPY_MEMORY m;
-	m.pid = MemVars::PID;
+	m.pid = currentPID();
 	m.WriteString = TRUE;
 	m.ClearPIDCache = FALSE;
 	m.Read = FALSE;
@@ -225,6 +294,11 @@ Read offset chain
 @return result of the offset chain
 */
 static uintptr_t ReadChain(uintptr_t base, const std::vector<uintptr_t>& offsets) {
+
+	if (currentPID() == NULL) {
+		std::cout << "PID NULL" << std::endl;
+		return NULL;
+	}
 
 	uintptr_t result = Read<uintptr_t>(base + offsets.at(0));
 

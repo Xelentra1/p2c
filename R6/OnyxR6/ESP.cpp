@@ -36,16 +36,14 @@ uint64_t get_player_by_id(unsigned int i)
 */
 
 namespace ESPStates {
-	bool cavESP = false;
 	bool setThisRound = false;
 }
 
 void ESP::cavESP(bool active)
 {
-	MemVars::PID = Offsets::currentPID();
-	BYTE spotted = active;
+	if (!Offsets::isInGame()) return;
 
-	ESPStates::cavESP = active;
+	BYTE spotted = active;
 
 	uintptr_t entity_list = Read<uintptr_t>(Offsets::gameManager() + offset_object_list);
 	int entity_count = Read<DWORD>(Offsets::gameManager() + offset_object_list_length) & 0x3fffffff;
@@ -68,10 +66,41 @@ void ESP::cavESP(bool active)
 			if (Read<uintptr_t>(addr3) != Offsets::marker())
 				continue;
 
-			Write<BYTE>(addr3 + 0x532, spotted);
+			//Write<BYTE>(addr3 + 0x532, spotted);
 			Write<BYTE>(addr3 + 0x534, spotted);
 		}
 	}
+}
+
+void AttemptOutlines() {
+
+	uint8_t ret_stub[] = { 0x41, 0xC7, 0x84, 0x24, 0x10, 0x03,0x00,0x00,0x01,0x00,0x00,0x00,  //mov [r12+00000310],01
+			0x90, //nop
+			0x90, //nop
+			0x90, //nop
+			0x90 //nop };
+	};
+
+	if (change_protection(currentPID(), 0x19FEC7C, PAGE_EXECUTE_READWRITE, 0x64) == 0)
+	{
+		Write<uint8_t[16]>(0x19FEC7C, ret_stub);
+		//WriteVirtualMemoryRaw(0x19FEC7C, reinterpret_cast<uintptr_t>(ret_stub), sizeof(ret_stub));
+		change_protection(currentPID(), 0x19FEC7C, PAGE_EXECUTE_READ, 0x64);
+	}
+
+	
+
+
+	//executeshell(shell, GameInfo.base + 0x19FEC7C);
+
+
+	/*
+	if (myteam == 3)
+		WriteMem<INT8>(myteam, 4)
+
+	if (myteam == 4)
+		WriteMem<INT8>(myteam, 3)
+		*/
 }
 
 /*
@@ -152,7 +181,7 @@ void ESP::ESPWatcher() {
 		Sleep(3000);
 		if (Offsets::isInGame() && !ESPStates::setThisRound) {
 			ESPStates::setThisRound = true;
-			ESP::cavESP(ESPStates::cavESP);
+			ESP::cavESP(CS::ID(CavESP_ID));
 		}
 		else if (ESPStates::setThisRound) {
 			ESPStates::setThisRound = false;

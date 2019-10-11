@@ -1,26 +1,17 @@
 #include "PlayerMod.h"
 
 namespace PlayerStates {
-	bool NoFlash = false;
-	bool NoClip = false;
-
 	bool setThisRound = false;
 }
 
 void NoFlash(bool active) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	PlayerStates::NoFlash = active;
 
 	Write<uint8_t>(Offsets::noflashPtr(), (active ? 0 : 1));
 }
 
 void NoClip(bool active) {
 	if (!Offsets::isInGame()) return;
-	MemVars::PID = Offsets::currentPID();
-
-	PlayerStates::NoClip = active;
 
 	Vector3 emptyVector = Vector3(0, 0, 0);
 	Vector3 defaultVector = Vector3(0.0001788139343f, 0.0001788139343f, 0.03051757626f);
@@ -33,8 +24,8 @@ void PlayerModWatcher() {
 		Sleep(3000);
 		if (Offsets::isInGame() && !PlayerStates::setThisRound) {
 			PlayerStates::setThisRound = true;
-			NoFlash(PlayerStates::NoFlash);
-			NoClip(PlayerStates::NoClip);
+			NoFlash(CS::ID(NoFlash_ID));
+			NoClip(CS::ID(Noclip_ID));
 		}
 		else if (PlayerStates::setThisRound) {
 			PlayerStates::setThisRound = false;
