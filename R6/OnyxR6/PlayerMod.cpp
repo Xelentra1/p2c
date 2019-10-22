@@ -20,17 +20,22 @@ void NoClip(bool active) {
 }
 
 void PlayerModWatcher() {
-	while (true) {
-		Sleep(3000);
+	//while (true) {
+		//Sleep(3000);
 		if (Offsets::isInGame() && !PlayerStates::setThisRound) {
+			Sleep(300);
 			PlayerStates::setThisRound = true;
-			NoFlash(CS::ID(NoFlash_ID));
-			NoClip(CS::ID(Noclip_ID));
+			if (CS::ID(NoFlash_ID)) {
+				NoFlash(true);
+			}
+			if (CS::ID(Noclip_ID)) {
+				NoClip(true);
+			}
 		}
 		else if (PlayerStates::setThisRound) {
 			PlayerStates::setThisRound = false;
 		}
-	}
+	//}
 }
 
 /*

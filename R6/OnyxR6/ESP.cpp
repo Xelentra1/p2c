@@ -72,35 +72,76 @@ void ESP::cavESP(bool active)
 	}
 }
 
-void AttemptOutlines() {
+#define PATCH_DRONEFIX 0x10f6f3b
 
-	uint8_t ret_stub[] = { 0x41, 0xC7, 0x84, 0x24, 0x10, 0x03,0x00,0x00,0x01,0x00,0x00,0x00,  //mov [r12+00000310],01
-			0x90, //nop
-			0x90, //nop
-			0x90, //nop
-			0x90 //nop };
-	};
+#define RDATA_RECOIL_PITCH 0x3945974
+#define RDATA_RECOIL_YAW 0x3946740
+void AttemptOutlines(float x, float y, float z) {
 
-	if (change_protection(currentPID(), 0x19FEC7C, PAGE_EXECUTE_READWRITE, 0x64) == 0)
-	{
-		Write<uint8_t[16]>(0x19FEC7C, ret_stub);
-		//WriteVirtualMemoryRaw(0x19FEC7C, reinterpret_cast<uintptr_t>(ret_stub), sizeof(ret_stub));
-		change_protection(currentPID(), 0x19FEC7C, PAGE_EXECUTE_READ, 0x64);
-	}
+	//BYTE fix_b[7] = { 0x0f, 0x2f, 0x3d, 0x36, 0xEA, 0x84, 0x02 };
+	//Write<BYTE[7]>(Offsets::base() + PATCH_DRONEFIX, fix_b);
 
-	
-
-
-	//executeshell(shell, GameInfo.base + 0x19FEC7C);
 
 
 	/*
-	if (myteam == 3)
-		WriteMem<INT8>(myteam, 4)
+	// Actual code
+	Vector4 enemyOutlineColor = { (uint8_t)1, (uint8_t)0, (uint8_t)1, 1.0 };
+	uintptr_t GMComponentContainer = Read<uintptr_t>(Offsets::gameManager() + 0x320);
+	uintptr_t GMComponentMarkAndOutline = Read<uintptr_t>(GMComponentContainer + 0x968);
+	Write<byte>(GMComponentMarkAndOutline + 0x48, 255);
+	Write<byte>(GMComponentMarkAndOutline + 0x310, 1);
+	Write<Vector4>(GMComponentMarkAndOutline + 0x48, enemyOutlineColor);
+	uintptr_t tmp = Read<uintptr_t>(Offsets::base() + 0x5E784C0);
+	uintptr_t tmp1 = Read<uintptr_t>(tmp + 0x90);   //88 38 68 20
+	uintptr_t tmp2 = Read<uintptr_t>(tmp1 + 0x38);   //90 38 128
+	uintptr_t tmp3 = Read<uintptr_t>(tmp2 + 0x128);
+	//Sleep(60000);
+	std::cout << "Sleep 1 min" << std::endl;
+	if (tmp3 == 3) {
+		Write<byte>(tmp2 + 0x128, 4);
+		std::cout << "Write to team 3" << std::endl;
+		Write<byte>(tmp3 + 0x20, 4);
+		std::cout << "Write to team 4" << std::endl;
+	}
+	tmp = Read<uintptr_t>(Offsets::base() + 0x5E784C0);
+	tmp1 = Read<uintptr_t>(tmp + 0x88);   //88 38 68 20
+	tmp2 = Read<uintptr_t>(tmp1 + 0x38);   //90 38 128
+	tmp3 = Read<uintptr_t>(tmp2 + 0x68);
+	uint64_t tmp4 = Read<uintptr_t>(tmp3 + 0x20);
+	if (tmp4 == 3) {
+		Write<byte>(tmp3 + 0x20, 4);
+		std::cout << "Write to team 4" << std::endl;
+		Write<byte>(tmp2 + 0x128, 4);
+		std::cout << "Write to team 3" << std::endl;
+	}
+	// End actual code
+	*/
 
-	if (myteam == 4)
-		WriteMem<INT8>(myteam, 3)
-		*/
+	//Write<byte>(tmp2 + 0x128, 3);
+	//Write<byte>(tmp3 + 0x20, 3);
+	/*
+	uintptr_t game_manager = Read<uintptr_t>(Offsets::base() + offset_game_manager);
+
+	Vector4 enemyOutlineColor = { x, y, z, 1.0 };
+	uintptr_t GMComponentContainer = Read<uintptr_t>(game_manager + 0x320);
+	uintptr_t GMComponentMarkAndOutline = Read<uintptr_t>(GMComponentContainer + 0x968);
+	Write<BYTE>(GMComponentMarkAndOutline + 0x48, 255);
+	Write<BYTE>(GMComponentMarkAndOutline + 0x310, 1);
+	Write<Vector4>(GMComponentMarkAndOutline + 0x48, enemyOutlineColor);
+
+	uintptr_t tmp = Read<uintptr_t>(Offsets::base() + 0x5E784C0);
+	uintptr_t tmp1 = Read<uintptr_t>(tmp + 0x90);   //88 38 68 20
+	uintptr_t tmp2 = Read<uintptr_t>(tmp1 + 0x38);   //90 38 128
+	//uintptr_t tmp3 = Read<uintptr_t>(tmp2 + 0x128);
+
+	uintptr_t tmpf = Read<uintptr_t>(Offsets::base() + 0x5E784C0);
+	uintptr_t tmp1f = Read<uintptr_t>(tmpf + 0x88);   //88 38 68 20
+	uintptr_t tmp2f = Read<uintptr_t>(tmp1f + 0x38);   //90 38 128
+	uintptr_t tmp3f = Read<uintptr_t>(tmp2f + 0x68);
+	uint64_t tmp4f = Read<uintptr_t>(tmp3f + 0x20);
+
+	Write<BYTE>(tmp2 + 0x128, tmp4f);
+	*/
 }
 
 /*
@@ -177,16 +218,19 @@ bool outline()
 */
 
 void ESP::ESPWatcher() {
-	while (true) {
-		Sleep(3000);
+	//while (true) {
+		//Sleep(3000);
 		if (Offsets::isInGame() && !ESPStates::setThisRound) {
+			Sleep(300);
 			ESPStates::setThisRound = true;
-			ESP::cavESP(CS::ID(CavESP_ID));
+			if (CS::ID(CavESP_ID)) {
+				ESP::cavESP(true);
+			}
 		}
 		else if (ESPStates::setThisRound) {
 			ESPStates::setThisRound = false;
 		}
-	}
+	//}
 }
 
 

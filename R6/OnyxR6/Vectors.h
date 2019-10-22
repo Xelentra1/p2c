@@ -122,3 +122,25 @@ public:
 	float z;
 	float w;
 };
+
+class OutlineColor {
+public:
+	OutlineColor() : x(255), y(255), z(255), w(1)
+	{
+
+	}
+
+	OutlineColor(int _x, int _y, int _z, double _w) : x(_x), y(_y), z(_z), w(_w)
+	{
+
+	}
+	~OutlineColor()
+	{
+
+	}
+
+	int x;
+	int y;
+	int z;
+	double w;
+};

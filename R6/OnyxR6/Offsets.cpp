@@ -14,12 +14,12 @@ bool patch_terminate()
 
 	uint64_t api = reinterpret_cast<uint64_t>(GetProcAddress(module, ("TerminateProcess"))) - reinterpret_cast<uint64_t>(module) + r6_module;
 
-	if (change_protection(currentPID(), api, PAGE_EXECUTE_READWRITE, 0x64) == 0)
+	if (change_protection(api, PAGE_EXECUTE_READWRITE, 0x64) == 0)
 	{
 		uint8_t ret_stub[] = { 0xC3, 0x90, 0x90, 0x90 };
 
 		WriteVirtualMemoryRaw(api, reinterpret_cast<uintptr_t>(ret_stub), sizeof(ret_stub));
-		change_protection(currentPID(), api, PAGE_EXECUTE_READ, 0x64);
+		change_protection(api, PAGE_EXECUTE_READ, 0x64);
 	}
 
 	/*
@@ -57,7 +57,11 @@ namespace Offsets {
 	uintptr_t networkManager = NULL;
 	uintptr_t profileManager = NULL;
 
-	uintptr_t localplayer = NULL;
+	uintptr_t _localPlayer = NULL;
+	uintptr_t localPlayer() {
+		return _localPlayer;
+	}
+	
 	/*
 	static uintptr_t statusManager;
 	static uintptr_t glowManager;
@@ -89,11 +93,11 @@ namespace Offsets {
 	}
 
 	uintptr_t noflashPtr() {
-		return ReadChain(localplayer, std::vector<uintptr_t>{ offset_noflash }) + offset_noflash_end;
+		return ReadChain(_localPlayer, std::vector<uintptr_t>{ offset_noflash }) + offset_noflash_end;
 	}
 
 	uintptr_t viewAnglePtr() {
-		return ReadChain(localplayer, std::vector<uintptr_t>{ offset_set_view_angle }) + offset_set_view_angle_end;
+		return ReadChain(_localPlayer, std::vector<uintptr_t>{ offset_set_view_angle }) + offset_set_view_angle_end;
 	}
 
 	uintptr_t marker() {
@@ -101,7 +105,7 @@ namespace Offsets {
 	}
 
 	uintptr_t localGun() {
-		return ReadChain(localplayer, std::vector<uintptr_t>{ offset_gunstat_base });
+		return ReadChain(_localPlayer, std::vector<uintptr_t>{ offset_gunstat_base });
 	}
 
 	float getRecoil() {
@@ -122,23 +126,46 @@ namespace Offsets {
 		return false;
 	}
 
+	bool IsInvalidPtr(uintptr_t ptr) {
+		if (ptr == NULL) return true;
+		if (ptr < 0x00010000) return true;
+		if (ptr > 0x7FFFFFFEFFFF) return true;
+		return false;
+	}
 
 	void init() {
 		if (!_hasInit) {
 			 setPID(GetProcessID("RainbowSix.exe"));
 			//std::cout << "PROCESS ID: " << PID << std::endl;
 			if (currentPID() != NULL) {
-
+				//std::cout << "In 1" << std::endl;
 				//MemVars::processHandle = OpenProcess(PROCESS_ALL_ACCESS, NULL, MemVars::PID);
 				baseAddress = GetModuleBaseAddr("RainbowSix.exe");
+				//std::cout << "In 2" << std::endl;
 				statusManager = Read<uintptr_t>(baseAddress + offset_status_manager);
+				//std::cout << std::hex << statusManager << std::endl;
+				if (IsInvalidPtr(statusManager)) return;
+				//std::cout << "In 3" << std::endl;
 				glowManager = Read<uintptr_t>(baseAddress + offset_glow_manager);
+				if (IsInvalidPtr(glowManager)) return;
+				//std::cout << "In 4" << std::endl;
 				_gameManager = Read<uintptr_t>(baseAddress + offset_game_manager);
+				if (IsInvalidPtr(_gameManager)) return;
+				//std::cout << "In 5" << std::endl;
 				outlineManager = ReadChain(_gameManager, std::vector<uintptr_t>{ offset_outlines });
+				//if (IsInvalidPtr(outlineManager)) return;
+				//std::cout << "In 6" << std::endl;
 				networkManager = Read<uintptr_t>(baseAddress + offset_network_manager);
+				if (IsInvalidPtr(networkManager)) return;
+				//std::cout << "In 7" << std::endl;
 				profileManager = Read<uintptr_t>(baseAddress + offset_profile_manager);
-				localplayer = ReadChain(profileManager, std::vector<uintptr_t>{ offset_localplayer });
+				if (IsInvalidPtr(profileManager)) return;
+				//std::cout << "In 8" << std::endl;
+				_localPlayer = ReadChain(profileManager, std::vector<uintptr_t>{ offset_localplayer });
+				if (IsInvalidPtr(_localPlayer)) return;
+				//std::cout << "In 9" << std::endl;
 				patch_terminate();
+				//std::cout << "In 10" << std::endl;
 				_hasInit = true;
 			}   //std::cout << "Test recoil value: " << Read<double>(gunBase()) << std::endl;
 		}

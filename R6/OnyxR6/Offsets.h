@@ -45,6 +45,10 @@
 #define offset_trigger_manager 0x51CB748
 
 #define offset_unlocks 0x133FB15 // 0x132F4C5
+
+#define offset_gun_info_ex 0x78, 0xc8
+#define offset_gun_info_reloadtime 0x24a0
+
 // marker: 0x37AC120
 /*
 GameManager: 0x51E27C8
@@ -80,6 +84,7 @@ namespace Offsets {
 	uintptr_t noflashPtr();
 	uintptr_t viewAnglePtr();
 	uintptr_t gameManager();
+	uintptr_t localPlayer();
 	uintptr_t marker();
 	float getRecoil();
 	float getSpread();

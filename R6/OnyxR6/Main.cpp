@@ -28,17 +28,13 @@ struct Util {
 };
 
 void Setup() {
+	SetConsoleTextAttribute(hConsole, 1);
+	std::cout << "[ONYX] Waiting for rainbow to load." << std::endl;
 	while (!Offsets::hasInit()) {
-		uint32_t temppid = GetProcessID("RainbowSix.exe");
-		//std::cout << "PROCESS ID: " << PID << std::endl;
 
-		if (temppid != NULL) {
-			//Sleep(35000);
-			temppid = NULL;
-			temppid = GetProcessID("RainbowSix.exe");
-			if (temppid != NULL) {
-				//std::cout << "PID IS: " << std::hex << temppid << std::endl;
-				Offsets::init();
+		if (GetProcessID("RainbowSix.exe") != NULL) {
+			Offsets::init();
+			if (Offsets::hasInit()) {
 				return;
 			}
 		}
@@ -47,7 +43,7 @@ void Setup() {
 }
 
 void keyThread() {
-	HHOOK hhkLowLevelKybd = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, 0, 0);
+	HHOOK hhkLowLevelKybd = SetWindowsHookExA(WH_KEYBOARD_LL, LowLevelKeyboardProc, 0, 0);
 
 	// Keep this app running until we're told to stop
 	MSG msg;
@@ -59,16 +55,30 @@ void keyThread() {
 	UnhookWindowsHookEx(hhkLowLevelKybd);
 }
 
+int counter = 1;
+void GameExitWatcher() {
+	if (counter++ % 10 == 0)
+		if (GetProcessID("RainbowSix.exe") == NULL) {
+			ExitThread(0);
+		}
+}
+
+void UpdateThread() {
+	while (true) {
+		GunModWatcher();
+		PlayerModWatcher();
+		ESP::ESPWatcher();
+		GameExitWatcher();
+		Sleep(500);
+	}
+}
+
 int main() {
-	ClearPIDCacheTable();
-	Setup();
+
 	//Print("[Onyx Dev] Offsets Loaded, type \"help\" for commands.");
 
 	// Start threads to keep cheats on between rounds
-	std::thread GunModThread = std::thread(GunModWatcher);
-	std::thread PlayerModThread = std::thread(PlayerModWatcher);
-	std::thread ESPThread = std::thread(ESP::ESPWatcher);
-	std::thread TriggerThread = std::thread(Misc::TriggerThread);
+	//std::thread TriggerThread = std::thread(Misc::TriggerThread);
 
 	//std::thread GunCheckDebug = std::thread(GunCheck);
 
@@ -82,17 +92,24 @@ int main() {
 	}
 	*/
 	
+
 	std::thread KeyThread = std::thread(keyThread);
 
-	UI::Setup();
-	std::thread _ConsoleThread = std::thread(UI::ConsoleThread);
+	while (true) {
+		ClearPIDCacheTable();
+		UI::Setup();
+		Setup();
+		std::thread _ConsoleThread = std::thread(UI::ConsoleThread);
+		std::thread MainThread = std::thread(UpdateThread);
+		MainThread.join();
+		Offsets::unInit();
+		CT::Reset();
+		_ConsoleThread.join();
+	}
 
+	//KeyThread.join();
 
-	
-
-	KeyThread.join();
-
-	TriggerThread.join();
+	//TriggerThread.join();
 	
 
 	return 0;

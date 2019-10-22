@@ -15,4 +15,4 @@ namespace ESP {
 	//void setOutline(bool update, bool visible);
 	//void outlineEsp(bool toggle);
 }
-void AttemptOutlines();
+void AttemptOutlines(float x, float y, float z);

@@ -3,10 +3,6 @@
 #include "Shared.h"
 #include "ESP.h"
 
-#define COLOR_MAIN 1
-#define COLOR_ENABLED 6
-#define COLOR_DISABLED 3
-
 std::vector<int> downKeys = std::vector<int>{};
 
 //keybd_event('B', 0, 0, 0);
@@ -29,7 +25,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				}
 				CT::ID(p->vkCode - 112);
 			}
-
+			/*
 			if ((p->vkCode == 0x70)) {
 				//Print("ALL on?");
 				
@@ -103,6 +99,7 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 				//Print("F12 Pressed");
 				break;
 			}
+			*/
 			//std::cout << std::hex << p->vkCode << std::endl;
 			break;
 		}
@@ -143,8 +140,6 @@ unsigned int rgb(double ratio)
 	return red + (grn << 8) + (blu << 16);
 }
 
-HANDLE hConsole;
-
 void SetLucidaFont()
 {
 	CONSOLE_FONT_INFOEX cfi;
@@ -160,18 +155,7 @@ void SetLucidaFont()
 
 const int cwidth = 80;
 
-std::vector<std::wstring> CheatNames = std::vector <std::wstring>{ L"All", L"NoSpread", L"NoRecoil", L"Glow", L"2x Bullets", L"Noclip", L"NoFlash", L"Cav ESP", L"TriggerBot", L"UnlockAll" };
-
-void SetChar(TCHAR cCharacter, COORD dwWriteCoord, DWORD nLength) {
-	DWORD count;
-	FillConsoleOutputCharacterA(
-		hConsole,
-		cCharacter,
-		nLength,
-		dwWriteCoord,
-		&count
-	);
-}
+std::vector<std::wstring> CheatNames = std::vector <std::wstring>{ L"All", L"NoSpread", L"NoRecoil", L"Glow", L"Noclip", L"NoFlash", L"Cav ESP", L"UnlockAll" };
 
 void UI::Setup() {
 	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -191,7 +175,8 @@ void UI::Setup() {
 	SetConsoleTextAttribute(hConsole, 4); // White is 15
 	SetConsoleOutputCP(65001);
 
-	SetChar(' ', { 0, 0 }, cwidth * (SHORT)CheatNames.capacity() + 4);
+	//SetChar(' ', { 0, 0 }, cwidth * (SHORT)CheatNames.capacity() + 4);
+	SetChar(' ', { 0, 0 }, 9999);
 	SetConsoleCursorPosition(hConsole, { 0, 0 });
 
 	CONSOLE_CURSOR_INFO cursorInfo;
@@ -207,6 +192,7 @@ void UI::Setup() {
 
 	//SetConsoleScreenBufferSize(hConsole, COORD{ 1000, 1000 });
 	//SetConsoleDisplayMode(hConsole, CONSOLE_WINDOWED_MODE, COORD{ 100, 100 });
+	
 }
 
 void SetRainbowColor(unsigned int color) {
@@ -218,17 +204,6 @@ void SetRainbowColor(unsigned int color) {
 	consoleInfo.srWindow.Bottom += 1;
 	consoleInfo.ColorTable[6] = color;
 	SetConsoleScreenBufferInfoEx(hConsole, &consoleInfo);
-}
-
-void SetColor(int colorValue, COORD dwWriteCoord, DWORD nLength) {
-	DWORD count;
-	FillConsoleOutputAttribute(
-		hConsole,
-		colorValue,
-		nLength,
-		dwWriteCoord,
-		&count
-	);
 }
 
 /*
@@ -244,26 +219,56 @@ void CPrint(std::wstring text) {
 	WriteConsoleW(hConsole, text.c_str(), std::wcslen(text.c_str()), &written, nullptr);
 }
 
+/*
+void reloadThread() {
+	while (true) {
+		Sleep(250);
+		if (Offsets::localPlayer == NULL) continue;
+		uintptr_t info = ReadChain(Offsets::localPlayer(), std::vector<uintptr_t>{ offset_gun_info_ex });
+		if (info == NULL) continue;
+		if (Read<float>(info + offset_gun_info_reloadtime) > 0.0F) {
+			Write<float>(info + offset_gun_info_reloadtime, 0.061F);
+		}
+	}
+}
+*/
+
 void inputThread() {
 	SetConsoleCursorPosition(hConsole, { 9, (SHORT)CheatNames.capacity() + 2 });
 	
+	//uintptr_t info = ReadChain(Offsets::localPlayer(), std::vector<uintptr_t>{ offset_gun_info_ex });
 
-	while (true) {
+	//std::thread ReloadThread = std::thread(reloadThread);
+	while (Offsets::hasInit()) {
 		std::cin.get();
-		AttemptOutlines();
+		//std::cout << Read<float>(info + offset_gun_info_reloadtime) << std::endl;
+		/*
+		if (Read<float>(info + offset_gun_info_reloadtime) > 0.0F) {
+			std::cout << "Need to set" << std::endl;
+			Write<float>(info + offset_gun_info_reloadtime, 0.061F);
+		}
+		*/
+		//std::thread ReloadThread = std::thread(reloadThread);
+		//AttemptOutlines(1, 0, 1);
 		SetConsoleCursorPosition(hConsole, { 9, (SHORT)CheatNames.capacity() + 2 });
 		SetChar(' ', { 9, (SHORT)CheatNames.capacity() + 2 }, cwidth - 9);
 	}
 }
 
 void UI::ConsoleThread() {
-	
+	SetChar(' ', { 0, 0 }, cwidth * (SHORT)CheatNames.capacity() + 4);
+	SetConsoleCursorPosition(hConsole, { 0, 0 });
+	SetConsoleTextAttribute(hConsole, 4);
+
 	int sideSize = (cwidth - 10) / 2;
 	CPrint(std::wstring{ L"┏" } + MultStr(std::wstring{ L"━" }, sideSize) + std::wstring{ L"<OnyxR6>" } +MultStr(std::wstring{ L"━" }, sideSize) + std::wstring{ L"┓" });
 	std::wstring lineStart = L"┃ [┄] ";
-	for (std::wstring name : CheatNames) {
-		CPrint(lineStart + name + MultStr(std::wstring{ L" " }, cwidth - 1 - (lineStart.length() + name.length())) + std::wstring{ L"┃" });
+	for (int i = 0; i < CheatNames.size(); i++)
+	{
+		std::string bind = " [F" + std::to_string(i + 1) + "]";
+		CPrint(lineStart + CheatNames[i] + MultStr(std::wstring{ L" " }, 10 - CheatNames[i].length()) + std::wstring{ bind.begin(), bind.end() } + MultStr(std::wstring{ L" " }, cwidth - 1 - (lineStart.length() + CheatNames[i].length()) - bind.length() - (10 - CheatNames[i].length())) + std::wstring{ L"┃" });
 	}
+	
 	CPrint(std::wstring{ L"┗" } + MultStr(std::wstring{ L"━" }, cwidth-2) + std::wstring{ L"┛" });
 	
 	
@@ -335,10 +340,10 @@ void UI::ConsoleThread() {
 	}
 
 	std::thread InputThread = std::thread(inputThread);
-	InputThread.detach();
+	
 
 	int i = 0;
-	while (true) {
+	while (Offsets::hasInit()) {
 		SetRainbowColor(rainbow[i % 300]);
 		//SetColor(6, { 3, 1 }, 1);
 		i++;
@@ -355,6 +360,7 @@ void UI::ConsoleThread() {
 		SetColor(15, { 0, (SHORT)CheatNames.capacity() + 2 }, cwidth);
 
 		//Sleep(9000);
+		/*
 		for (SHORT i = 0; i <= CheatNames.capacity()-1; i++)
 		{
 			//SetConsoleCursorPosition(hConsole, { 3, i+1 });
@@ -362,7 +368,11 @@ void UI::ConsoleThread() {
 			SetChar(CS::ID(i) ? '+' : '-', { 3, i + 1 }, 1);
 			SetColor(CS::ID(i) ? COLOR_ENABLED : COLOR_DISABLED, { 3, i+1 }, 1);
 		}
+		*/
 		Sleep(10);
 				//std::cin.get();
 	}
+	
+	TerminateThread(InputThread.native_handle(), 0);
+	InputThread.join();
 }

@@ -15,7 +15,7 @@ public:
 	float spread;
 	float bulletsPerShot;
 	bool setThisRound;
-	bool multSetThisRound;
+	//bool multSetThisRound;
 
 	//GunInfo(uintptr_t _gunPtr, uintptr_t _bulletPtr, float _recoil, float _spread, float _bulletPerShot) {
 	GunInfo(uintptr_t _gunPtr, uintptr_t _bulletPtr, float _spread, float _bulletPerShot) {
@@ -24,6 +24,6 @@ public:
 		spread = _spread;
 		bulletsPerShot = _bulletPerShot;
 		setThisRound = false;
-		multSetThisRound = false;
+		//multSetThisRound = false;
 	}
 };

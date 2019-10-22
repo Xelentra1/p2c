@@ -118,7 +118,7 @@ static ULONG64 GetModuleBaseAddr(const char* moduleName) {
 }
 
 
-static ULONG64 change_protection(uint64_t pid, uint64_t address, uint32_t page_protection, std::size_t size)
+static ULONG64 change_protection(uint64_t address, uint32_t page_protection, std::size_t size)
 {
 	if (currentPID() == NULL) {
 		std::cout << "PID NULL" << std::endl;
@@ -184,6 +184,18 @@ static bool Write(UINT_PTR WriteAddress, const S& value)
 {
 	return WriteVirtualMemoryRaw(WriteAddress, (UINT_PTR)& value, sizeof(S));
 }
+
+template<typename S>
+static bool WriteToReadOnly(UINT_PTR WriteAddress, const S& value)
+{
+	if (change_protection(WriteAddress, PAGE_EXECUTE_READWRITE, sizeof(S)) == 0)
+	{
+		return WriteVirtualMemoryRaw(WriteAddress, (UINT_PTR)& value, sizeof(S));
+		change_protection(WriteAddress, PAGE_EXECUTE_READ, sizeof(S));
+	}
+	else return false;
+}
+
 static bool WriteVirtualMemoryRaw(UINT_PTR WriteAddress, UINT_PTR SourceAddress, SIZE_T WriteSize)
 {
 	if (currentPID() == NULL) {

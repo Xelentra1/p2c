@@ -100,24 +100,32 @@ void NoRecoil(bool active) {
 
 	Write<float>(recoilPtr, (active ? 0.002F : currentGun.recoil));
 	*/
+	
+	uintptr_t GunBase = Offsets::localGun();
+	Write<bool>(GunBase + 0x168, false);
+	Write<float>(GunBase + 0x14C, active ? -0.1002 : 1);
+	Write<float>(GunBase + 0x15C, active ? -0.1004 : 1);
 
-	if (change_protection(currentPID(), Offsets::base() + 0x1298380, PAGE_EXECUTE_READWRITE, 4) == 0) { // Recoil Patch
+	/*
+	if (change_protection(Offsets::base() + 0x1298380, PAGE_EXECUTE_READWRITE, 4) == 0) { // Recoil Patch
 		Write<uint8_t>(Offsets::base() + 0x1298380 + 0x02, !active);
 		//std::cout << "Original byte (hex): " << std::hex << original << std::endl;
 	}
-	change_protection(currentPID(), Offsets::base() + 0x1298380, PAGE_EXECUTE_READ, 4);
+	change_protection(Offsets::base() + 0x1298380, PAGE_EXECUTE_READ, 4);
+	*/
 }
 
 void NoSpread(bool active) {
 	if (!Offsets::isInGame()) return;
 
-	intptr_t spreadPtr = Offsets::localGun() + offset_spread;
+	
 	GunInfo currentGun = CurrentGun();
 	currentGun = GetValidGun(currentGun);
-
+	
+	
 	//PrintGunList();
-
-	Write<float>(spreadPtr, (active ? 0.002F : currentGun.spread));
+	Write<float>(Offsets::localGun() + offset_spread, (active ? 0.002F : currentGun.spread));
+	//Write<float>(spreadPtr, (active ? 0.002F : 1.0F));
 }
 
 void SetDamage(intptr_t damagePtr, unsigned int damage) {
@@ -150,6 +158,7 @@ void SetThisRound(GunInfo gun, bool wasSet) {
 	}
 }
 
+/*
 void MultSetThisRound(GunInfo gun, bool wasSet) {
 	for (GunInfo& tempGun : gunInfoList) {
 		if (tempGun.bulletPtr == gun.bulletPtr) {
@@ -157,14 +166,15 @@ void MultSetThisRound(GunInfo gun, bool wasSet) {
 		}
 	}
 }
+*/
 
 void GunModWatcher() {
 	bool listCleared = false;
-	while (true) {
+	//while (true) {
 		//std::cout << "Watcher running" << std::endl;
-		Sleep(500);
+		//Sleep(500);
 		if (Offsets::isInGame()) {
-			Sleep(1000);
+			Sleep(300);
 			listCleared = false;
 			GunInfo currentGun = CurrentGun();
 			GunInfo currentInfo = GetValidGun(currentGun);
@@ -172,22 +182,26 @@ void GunModWatcher() {
 			if (!currentInfo.setThisRound) {
 				//std::cout << "Set Recoil/Spread" << std::endl;
 				SetThisRound(currentInfo, true);
-				//NoRecoil(CS::ID(NoRecoil_ID), currentInfo);
-				NoSpread(CS::ID(NoSpread_ID), currentInfo);
+				if (CS::ID(NoRecoil_ID)) {
+					NoRecoil(true);
+				}
+				if (CS::ID(NoSpread_ID)) {
+					NoSpread(true, currentInfo);
+				}
 			}
-			if (!currentMult.multSetThisRound) {
+			//if (!currentMult.multSetThisRound) {
 				//std::cout << "Set Damage Mult" << std::endl;
-				MultSetThisRound(currentMult, true);
-				DamageMultiplier(CS::ID(DamageMult_ID), currentMult);
-			}
+			//	MultSetThisRound(currentMult, true);
+				//DamageMultiplier(CS::ID(DamageMult_ID), currentMult);
+			//}
 		}
 		else if (!listCleared) {
 			listCleared = true;
 			//std::cout << "Cleared set list" << std::endl;
 			for (GunInfo& gun : gunInfoList) {
 				SetThisRound(gun, false);
-				MultSetThisRound(gun, false);
+				//MultSetThisRound(gun, false);
 			}
 		}
-	}
+	//}
 }

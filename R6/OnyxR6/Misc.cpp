@@ -5,14 +5,15 @@
 
 void Misc::UnlockAll(bool enabled) {
 	auto instruction = Offsets::base() + offset_unlocks;
-	if (change_protection(currentPID(), instruction, PAGE_EXECUTE_READWRITE, 4) == 0)
+	if (change_protection(instruction, PAGE_EXECUTE_READWRITE, 4) == 0)
 	{
 		Write<std::uint8_t>(instruction + 3, enabled ? 0 : 1);
 
-		change_protection(currentPID(), instruction, PAGE_EXECUTE_READ, 4);
+		change_protection(instruction, PAGE_EXECUTE_READ, 4);
 	}
 }
 
+/*
 void Misc::TriggerThread() {
 	//if (!Offsets::isInGame()) return;
 	while (true) {
@@ -54,17 +55,18 @@ void Misc::TriggerThread() {
 		Sleep(1000);
 	}
 }
+*/
 
 #define OPCODE_BULLETANGLE 0xFA5431
 #define OFFSET_VIEWANGLES_BULLETANGLES 0x134
 void PatchAim() {
 	unsigned long long BulletAngle = (unsigned long long)(Offsets::base() + OPCODE_BULLETANGLE + 0x03);
 
-	if (change_protection(currentPID(), BulletAngle, PAGE_EXECUTE_READWRITE, sizeof(unsigned long)) == 0)
+	if (change_protection(BulletAngle, PAGE_EXECUTE_READWRITE, sizeof(unsigned long)) == 0)
 	{
 		Write<unsigned long>(BulletAngle, OFFSET_VIEWANGLES_BULLETANGLES);
 
-		change_protection(currentPID(), BulletAngle, PAGE_EXECUTE_READ, sizeof(unsigned long));
+		change_protection(BulletAngle, PAGE_EXECUTE_READ, sizeof(unsigned long));
 	}
 }
 
