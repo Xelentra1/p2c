@@ -7,13 +7,13 @@
 #define offset_ammo 0xCC // local ] gun_base ] ammo
 #define offset_ammo2 0xD0 // local ] gun_base ] ammo2
 
-#define offset_status_manager 0x51f0e30 //0x51b8820  //0x51CF9F8
+#define offset_status_manager 0x52124B8 //0x5225220 //0x51f0e30 //0x51b8820  //0x51CF9F8
 #define offset_roundstate 0x2e8
 
-#define offset_glow_manager 0x5e77a98 //0x5E3F4E8 //0x5e56e40 old
+#define offset_glow_manager 0x5e99be0 //0x5E3F4E8 //0x5e56e40 old
 #define offset_glowbase 0xB8
 
-#define offset_game_manager 0x5203C00 //0x51CB748 // 0x51E27C8
+#define offset_game_manager 0x5225280  //0x5203C00 //0x51CB748 // 0x51E27C8
 #define offset_damage_modifier_chain 0x1F8, 0xD8, 0x48, 0x130, 0x130, 0x0
 #define offset_damage_modifier_end 0x40
 
@@ -25,11 +25,11 @@
 #define offset_outline_color_friendly 0x48
 #define offset_outline_color_enemy 0x58
 
-#define offset_network_manager 0x51F0E40 //0x51B8958 //0x51CFA08
+#define offset_network_manager 0x52124C0 //0x51F0E40 //0x51B8958 //0x51CFA08
 #define offset_noclip 0xF8, 0x8
 #define offset_noclip_end 0x530
 
-#define offset_profile_manager 0x51F0CB8 //0x51B87B0  //0x51CF880
+#define offset_profile_manager 0x5212338 //0x51F0CB8 //0x51B87B0  //0x51CF880
 #define offset_localplayer 0x68, 0x0, 0x28
 #define offset_noflash 0x30, 0x30, 0x28
 #define offset_noflash_end 0x40
@@ -37,14 +37,14 @@
 #define offset_set_view_angle 0x1170
 #define offset_set_view_angle_end 0xC0 // vector 4
 
-#define offset_marker 0x37d8fc0 // 0x37BBA90 // new 0x37BBA90  // Orig 0x37AC120
+#define offset_marker 0x37EC998 //0x37d8fc0 // 0x37BBA90 // new 0x37BBA90  // Orig 0x37AC120
 #define offset_gamemanager_object_list2 0x1D8
 #define offset_object_list 0x1C8
 #define offset_object_list_length 0x1D0
 
 #define offset_trigger_manager 0x51CB748
 
-#define offset_unlocks 0x133FB15 // 0x132F4C5
+#define offset_unlocks 0x134b7f5 // 0x132F4C5
 
 #define offset_gun_info_ex 0x78, 0xc8
 #define offset_gun_info_reloadtime 0x24a0
